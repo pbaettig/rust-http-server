@@ -2,6 +2,7 @@ use std::default;
 
 #[derive(Debug)]
 #[derive(Default)]
+#[derive(PartialEq, Eq)]
 pub enum Method {
     #[default]
     GET,
