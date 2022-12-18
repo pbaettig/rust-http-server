@@ -6,15 +6,6 @@ pub struct Headers {
     map: HashMap<String, Option<String>, RandomState>
 }
 
-// impl fmt::Display for Headers {
-//     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-//         for (k,v) in self.map {
-//             write!(f, "{}: {:?}", k, v)?
-//         }
-        
-//         Ok(())
-//     }
-// }
 impl std::string::ToString for Headers {
     fn to_string(&self) -> String {
         let mut s = String::new();
@@ -25,7 +16,8 @@ impl std::string::ToString for Headers {
             };
             s.push_str(&format!("{}: {:?}\n", k,vs));
         }
-        s.push_str("\n");
+        s.push_str("\r\n");
+        
         s
     }
 }
@@ -38,7 +30,8 @@ impl Headers {
     pub fn default() -> Self {
         let mut h = Headers {map: HashMap::new()};
         h.add("Server".to_string(), Some("rusty-server".to_string()));
-
+        h.add("Connection".to_string(), Some("close".to_string()));
+        
         h
     }
 

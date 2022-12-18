@@ -3,7 +3,7 @@
 	"tasks": [
 		{
 			"type": "shell",
-			"command": "(cd ${workspaceFolder}; cargo run -q --bin ${fileBasenameNoExtension})",
+			"command": "(cd ${workspaceFolder}; cargo run -q --bin server)",
 			"problemMatcher": [
 				"$rustc"
 			],

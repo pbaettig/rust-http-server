@@ -1,4 +1,4 @@
 mod http;
 mod server;
-pub use http::{Method, Request, Response};
+pub use http::*;
 pub use server::Server;

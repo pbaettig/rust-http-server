@@ -1,55 +1,11 @@
-use std::collections::HashMap;
-use std::net::{TcpListener, TcpStream};
-use std::io::{Read, BufReader, BufRead, Write};
+use std::net::TcpListener;
 use std::process::exit;
-use std::str::{self, FromStr};
 use std::time::Duration;
-use glob::Pattern;
-
-use crate::{http, Method};
-
-use super::http::Request;
-use super::http::Response;
-
-type HandlerFn = fn(Request);
+use crate::http::{HttpVersion, Status,Request, Response, Handlers};
 
 
-pub struct Handlers {
-    handlers: Vec<(Method, Pattern, HandlerFn)>
-}
 
-impl Handlers {
-    pub fn new() -> Self {
-        Handlers { handlers: vec![(http::Method::GET, Pattern::new("/ok*").unwrap(), |mut r: Request| {
-            println!("here I am!!");
-            let mut resp = Response::ok(r.version).to_string();
-            resp.push_str("\r\nHello there!");
-            
-            r.stream.write(resp.as_bytes());
-        } )] 
-        }
-    }
 
-    pub fn get(&self, m: &Method, uri: &str) -> Result<(usize, HandlerFn), ()> {
-        for (i, (rm, rp, hf)) in self.handlers.iter().enumerate() {
-            if *rm == *m && rp.matches(uri) {
-                return Ok((i, *hf))
-            }
-        }
-
-        Err(())
-    }
-
-    // pub fn register(&mut self, m: Method, p: Pattern, h: HandlerFn, ) {
-    //     if let Some((idx, _)) = self.get(&m, &p) {
-    //         self.handlers[idx] = (m, p, h);
-    //         return
-    //     }
-
-    //     self.handlers.push((m, p, h));
-
-    // }
-}
 
 pub struct Server {
     addr: String,
@@ -61,13 +17,20 @@ impl Server {
         Self{addr, handlers: Handlers::new()}
     }
 
-    fn dispatch_request(&self, mut r: Request) -> Result<(), ()> {
+    fn dispatch_request(&self, r: Request) -> Result<(), &str> {
         match self.handlers.get(&r.method, &r.uri.path) {
             Ok((_, h)) => { h(r); return Ok(()) },
             _ => {
-                println!("uh oh...");
-                r.stream.write(Response::internal_server_error(r.version).to_string().as_bytes());
-                return Err(())
+                println!("no handler!!");
+                let resp = Response::new(
+                    Status::NotFound, 
+                    format!("No handler registered for {} {}", r.method.to_string(), r.uri.path).as_str()
+                );
+                
+                println!("{}", resp.to_string());
+                resp.write_to(r.stream).unwrap();
+
+                return Err("no handler")
             }
         }
     }
@@ -83,7 +46,7 @@ impl Server {
         };
         println!("running on {}", self.addr);
         loop {
-            let (mut stream, remote_addr) = match listener.accept() {
+            let (stream, remote_addr) = match listener.accept() {
                 Ok((stream, addr)) => (stream, addr),
                 Err(e) => {
                     println!("failed to accept connection: {}", e.to_string());
@@ -95,18 +58,24 @@ impl Server {
 
 
             println!("new connection from {:?}", remote_addr.ip());
-            let Ok(mut req) = Request::new(stream) else {
+            let Ok(req) = Request::new(stream) else {
                 println!("failed to parse request");
                 continue;
             };
-
+            if req.version != HttpVersion::HTTP1_1 {
+                let resp = Response::new(Status::HttpVersionNotSupported, "HTTP version is not supported" );
+                resp.write_to(req.stream).unwrap();
+                continue;
+            }
 
             println!("************");
             println!("{}", req.to_string()); 
             println!("************");
 
             
-            self.dispatch_request(req);
+            if let Err(e) = self.dispatch_request(req) {
+                println!("Couldn´t dispatch request: {}", e);
+            };
         }
         
     }

@@ -1,0 +1,7 @@
+- [ ] document code
+- [ ] support for multiple header / query param values with same name
+- [ ] simplify module structure
+- [ ] handle signals (SIGINT)
+- [ ] add tests
+- [ ] add proper logging
+- [ ] prometheus metrics?

@@ -1,8 +1,4 @@
-use std::default;
-
-#[derive(Debug)]
-#[derive(Default)]
-#[derive(PartialEq, Eq)]
+#[derive(Debug, Default, PartialEq, Eq)]
 pub enum Method {
     #[default]
     GET,
@@ -34,15 +30,9 @@ impl std::string::ToString for Method {
     }
 }
 
-pub enum MethodParseError  {
+pub enum MethodParseError {
     UnknownMethod,
 }
-
-
-// GET / HTTP/1.1
-// Host: localhost:8888
-// User-Agent: curl/7.81.0
-// Accept: */*
 
 impl std::str::FromStr for Method {
     type Err = MethodParseError;
