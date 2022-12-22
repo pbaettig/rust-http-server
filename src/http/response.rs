@@ -80,3 +80,37 @@ impl std::string::ToString for Response {
         s
     }
 }
+
+
+#[cfg(test)]
+mod tests {
+    use std::io::Cursor;
+
+    use crate::{Response, HttpVersion, Status, Headers};
+
+    #[test]
+    fn response_write_to() {
+        let buf = Cursor::new(Vec::<u8>::new());
+        let mut h = Headers::new();
+
+        h.add("server".to_string(), Some("rust-tests".to_string()));
+
+
+        let _resp = Response{
+            version: HttpVersion::HTTP1_1,
+            status: Status::Ok,
+            headers: h,
+            payload: String::from("Hello there!").bytes().collect(),
+        };
+
+        //assert_eq!(resp.headers.content_length().unwrap(), 12, "Content-Length is wrong");
+
+       
+
+        let rs = String::from_utf8(buf.into_inner()).unwrap();
+        println!("{rs}");
+        // TODO: more tests on response format
+
+    }
+
+}

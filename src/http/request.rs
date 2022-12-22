@@ -119,3 +119,29 @@ impl std::string::ToString for Request {
         s
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use std::io::Cursor;
+
+
+    #[test]
+    pub fn test_request() {
+        // GET / HTTP/1.1
+        // Host: localhost:8088
+        // User-Agent: curl/7.81.0
+        // Accept: */*
+
+
+        let mut rs = String::new();
+        rs.push_str("GET /index.php?param1=2&p2=2 HTTP/1.1\r\n");
+        rs.push_str("Host: testy.mctest.local:8088");
+        rs.push_str("User-Agent: unittest/1.2.3");
+        rs.push_str("X-Test: 1234abc");
+        rs.push_str("Content-Length: 12");
+        rs.push_str("\r\n");
+        rs.push_str("abcdef123456");
+
+        let _c = Cursor::new(rs.as_bytes());
+    }
+}

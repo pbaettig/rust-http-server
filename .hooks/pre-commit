@@ -1,0 +1,8 @@
+#!/bin/bash
+r="$(cargo test --tests --quiet --color always 2>&1)"
+if [[ $? -eq 0 ]]; then
+	exit 0
+fi
+
+echo "$r"
+exit 1
