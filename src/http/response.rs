@@ -1,4 +1,4 @@
-use std::{io::Write, net::TcpStream};
+use std::io::Write;
 
 use super::{Headers, HttpVersion};
 #[derive(Clone, Copy)]
@@ -56,10 +56,17 @@ impl Response {
             payload: msg.bytes().collect(),
         }
     }
-}
 
-impl Response {
-    pub fn write_to(&self, mut s: TcpStream) -> Result<usize, std::io::Error> {
+    pub fn set_content_length(&mut self) {
+        self.headers.add(
+            "content-length".to_string(),
+            Some(self.payload.len().to_string()),
+        );
+    }
+
+    pub fn write_to<T: Write>(&mut self, mut s: T) -> Result<usize, std::io::Error> {
+        self.set_content_length();
+
         s.write(self.to_string().as_bytes())
     }
 }
@@ -81,12 +88,11 @@ impl std::string::ToString for Response {
     }
 }
 
-
 #[cfg(test)]
 mod tests {
     use std::io::Cursor;
 
-    use crate::{Response, HttpVersion, Status, Headers};
+    use crate::{Headers, HttpVersion, Response, Status};
 
     #[test]
     fn response_write_to() {
@@ -95,8 +101,7 @@ mod tests {
 
         h.add("server".to_string(), Some("rust-tests".to_string()));
 
-
-        let _resp = Response{
+        let _resp = Response {
             version: HttpVersion::HTTP1_1,
             status: Status::Ok,
             headers: h,
@@ -105,12 +110,8 @@ mod tests {
 
         //assert_eq!(resp.headers.content_length().unwrap(), 12, "Content-Length is wrong");
 
-       
-
         let rs = String::from_utf8(buf.into_inner()).unwrap();
         println!("{rs}");
         // TODO: more tests on response format
-
     }
-
 }

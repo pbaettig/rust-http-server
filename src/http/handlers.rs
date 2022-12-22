@@ -1,38 +1,63 @@
-use crate::http::{Method, Request};
-use glob::Pattern;
-type HandlerFn = fn(Request);
+use std::io::Write;
 
-pub struct Handlers {
-    handlers: Vec<(Method, Pattern, HandlerFn)>,
+use crate::{
+    http::{Method, Request},
+    Response, Status,
+};
+use glob::Pattern;
+
+pub struct Handler<T: Write> {
+    pub methods: Vec<Method>,
+    pub pattern: Pattern,
+    pub func: fn(Request, T) -> Result<usize, std::io::Error>,
 }
 
-impl Handlers {
-    pub fn new() -> Self {
-        let h = Handlers { handlers: vec![] };
+impl<T: Write> Handler<T> {
+    pub fn handle(&self, r: Request, w: T) -> Result<usize, std::io::Error> {
+        (self.func)(r, w)
+    }
+}
 
+pub struct Handlers<T: Write> {
+    handlers: Vec<Handler<T>>,
+    default_handler: Handler<T>,
+}
+
+impl<T: Write> Handlers<T> {
+    pub fn new() -> Self {
+        let h = Handlers {
+            handlers: vec![],
+            default_handler: Handler {
+                methods: vec![Method::GET],
+                pattern: Pattern::new("/").unwrap(),
+                func: |r, w: T| {
+                    let mut resp = Response::new(
+                        Status::NotFound,
+                        &format!(
+                            "no handler found for {} {}",
+                            r.method.to_string(),
+                            r.uri.path
+                        ),
+                    );
+
+                    resp.write_to(w)
+                },
+            },
+        };
         return h;
     }
 
-    pub fn get(&self, m: &Method, uri: &str) -> Result<(usize, HandlerFn), ()> {
-        for (i, (rm, rp, hf)) in self.handlers.iter().enumerate() {
-            if *rm == *m && rp.matches(uri) {
-                return Ok((i, *hf));
+    pub fn get(&self, m: &Method, uri: &str) -> (bool, &Handler<T>) {
+        for h in self.handlers.iter() {
+            if h.methods.contains(m) && h.pattern.matches(uri) {
+                return (true, h);
             }
         }
 
-        Err(())
+        (false, &self.default_handler)
     }
 
-    pub fn register(&mut self, m: Method, p: Pattern, h: HandlerFn) {
-        let idx = self.handlers.iter().position(|x| {
-            let (rm, rp, _) = &x;
-            *rm == m && *rp == p
-        });
-        match idx {
-            Some(i) => {
-                self.handlers[i] = (m, p, h);
-            }
-            None => self.handlers.push((m, p, h)),
-        };
+    pub fn register(&mut self, h: Handler<T>) {
+        self.handlers.insert(0, h)
     }
 }

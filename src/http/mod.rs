@@ -13,5 +13,5 @@ pub use uri::Uri;
 pub use version::HttpVersion;
 pub use method::Method;
 pub use response::{Response, Status};
-pub use handlers::Handlers;
+pub use handlers::{Handlers, Handler};
 pub use server::Server;

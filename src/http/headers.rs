@@ -14,7 +14,7 @@ impl std::string::ToString for Headers {
                 Some(s) => s.to_owned(),
                 None => "".to_string(),
             };
-            s.push_str(&format!("{}: {:?}\n", k,vs));
+            s.push_str(&format!("{}: {}\n", k,vs));
         }
         s.push_str("\r\n");
         

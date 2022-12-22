@@ -16,7 +16,7 @@ pub struct Request {
     pub headers: Headers,
     pub payload: Vec<u8>,
     pub version: HttpVersion,
-    pub stream: TcpStream,
+    // pub stream: TcpStream,
 }
 
 #[derive(Debug)]
@@ -30,7 +30,7 @@ pub enum RequestParseError {
 }
 
 impl Request {
-    pub fn new(s: TcpStream) -> Result<Self, ()> {
+    pub fn new(s: &TcpStream) -> Result<Self, ()> {
         let mut line_buf = String::new();
         let mut reader = BufReader::new(s);
 
@@ -77,7 +77,7 @@ impl Request {
             headers,
             payload,
             version,
-            stream: reader.into_inner(),
+            // stream: reader.into_inner(),
         })
     }
 
@@ -124,14 +124,12 @@ impl std::string::ToString for Request {
 mod tests {
     use std::io::Cursor;
 
-
     #[test]
     pub fn test_request() {
         // GET / HTTP/1.1
         // Host: localhost:8088
         // User-Agent: curl/7.81.0
         // Accept: */*
-
 
         let mut rs = String::new();
         rs.push_str("GET /index.php?param1=2&p2=2 HTTP/1.1\r\n");

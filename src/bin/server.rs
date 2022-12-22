@@ -1,41 +1,16 @@
-
-
-use server::{Method, Server, Request, Response,Status};
 use glob::Pattern;
+use server::{Handler, Method, Response, Server, Status};
 
 fn main() {
     let mut server = Server::new(String::from("localhost:8080"));
-    server.handlers.register(
-            Method::GET,
-            Pattern::new("/ok*").unwrap(), 
-            |r: Request| {
-                let resp = Response::new(Status::Ok, "OK!");
-                resp.write_to(r.stream).unwrap();
-            }
-    );
+    server.handlers.register(Handler {
+        methods: vec![Method::GET, Method::POST],
+        pattern: Pattern::new("/ok/*").unwrap(),
+        func: |r, w| -> Result<usize, std::io::Error> {
+            let mut resp = Response::new(Status::Ok, &format!("hello from {}!", r.uri.path));
 
-    server.handlers.register(
-        Method::GET,
-        Pattern::new("/nok*").unwrap(), 
-        |r: Request| {
-            let resp = Response::new(Status::InternalServerError, "Not OK");
-            resp.write_to(r.stream).unwrap();
-            
-        }
-    );
-
-    server.handlers.register(
-        Method::POST,
-        Pattern::new("/form*").unwrap(), 
-        |r: Request| {
-            let resp = Response::new(Status::Ok, "got it");
-            println!("{}", String::from_utf8(r.payload).unwrap());
-            resp.write_to(r.stream).unwrap();
-            
-        }
-    );
-
+            resp.write_to(w)
+        },
+    });
     server.run()
 }
-
-
