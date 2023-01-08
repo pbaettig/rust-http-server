@@ -1,10 +1,33 @@
-use std::collections::{HashMap, hash_map::RandomState};
+use std::{collections::{HashMap, hash_map::RandomState}, fmt::Display, error::Error};
 
 #[derive(Debug)]
 #[derive(Default)]
 pub struct Headers {
     map: HashMap<String, Option<String>, RandomState>
 }
+
+
+#[derive(Debug)]
+pub enum HeaderError {
+    NotFound,
+    NoValue,
+    InvalidValue,
+}
+
+impl Display for HeaderError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::NoValue => write!(f, "header is defined but has no value"),
+            Self::NotFound => write!(f, "header is not defined"),
+            Self::InvalidValue => write!(f, "header is defined but has an invalid value, e.g. invalid int"),
+        }
+    }
+}
+
+impl Error for HeaderError {}
+
+
+
 
 impl std::string::ToString for Headers {
     fn to_string(&self) -> String {
@@ -14,7 +37,7 @@ impl std::string::ToString for Headers {
                 Some(s) => s.to_owned(),
                 None => "".to_string(),
             };
-            s.push_str(&format!("{}: {}\n", k,vs));
+            s.push_str(&format!("{}: {}\r\n", k,vs));
         }
         s.push_str("\r\n");
         
@@ -35,34 +58,32 @@ impl Headers {
         h
     }
 
-    pub fn content_length(&self) -> Result<usize, ()> {
-        let v = match self.get(String::from("content-length")) {
-            None => 0,
-            Some(v) => {
-                
-                let Some(vn) = v else {
-                    // Content-Length header exists but has no value
-                    return Err(());
-                };
+    pub fn content_length(&self) -> Result<usize, HeaderError> {
+        match self.get(String::from("content-length")) {
+            Err(e) => Err(e),
+            Ok(v) =>  v.parse::<usize>().map_err(|_| HeaderError::InvalidValue)
+        }
 
+    }
 
-               vn.parse::<usize>().map_err(|_| ())?
-
-            }
-        };
-
-        return Ok(v)
+    pub fn server(&self) -> Result<String, HeaderError> {
+        self.get(String::from("server"))
     }
 
     pub fn add(&mut self, k: String, v: Option<String>) ->Option<Option<String>>{
         self.map.insert(k.to_lowercase(), v)
     }
 
-    pub fn get(&self, k: String) -> Option<Option<String>> {
+    pub fn get(&self, k: String) -> Result<String, HeaderError> {
         let v = self.map.get(&k.to_ascii_lowercase());
         match v {
-            Some(o) => Some(o.to_owned()),
-            None => None
+            Some(o) => {
+                match o {
+                    Some(v) => Ok(v.to_owned()),
+                    None => Err(HeaderError::NoValue),
+                }
+            },
+            None => Err(HeaderError::NotFound)
         }
     }
 
