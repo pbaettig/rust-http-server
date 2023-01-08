@@ -9,11 +9,11 @@ use glob::Pattern;
 pub struct Handler<T: Write> {
     pub methods: Vec<Method>,
     pub pattern: Pattern,
-    pub func: fn(Request, T) -> Result<usize, std::io::Error>,
+    pub func: fn(Request, &mut T) -> Result<usize, std::io::Error>,
 }
 
 impl<T: Write> Handler<T> {
-    pub fn handle(&self, r: Request, w: T) -> Result<usize, std::io::Error> {
+    pub fn handle(&self, r: Request, w: &mut T) -> Result<usize, std::io::Error> {
         (self.func)(r, w)
     }
 }
@@ -30,7 +30,7 @@ impl<T: Write> Handlers<T> {
             default_handler: Handler {
                 methods: vec![Method::GET],
                 pattern: Pattern::new("/").unwrap(),
-                func: |r, w: T| {
+                func: |r: Request, w: &mut T| {
                     let mut resp = Response::new(
                         Status::NotFound,
                         &format!(

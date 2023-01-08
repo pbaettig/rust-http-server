@@ -16,9 +16,9 @@ impl Server {
         }
     }
 
-    fn dispatch_request(&self, r: Request, w: TcpStream) -> bool {
+    fn dispatch_request(&self, r: Request, mut w: TcpStream) -> bool {
         let (found, handler) = self.handlers.get(&r.method, &r.uri.path);
-        handler.handle(r, w).unwrap();
+        handler.handle(r, &mut w).unwrap();
 
         return found;
     }

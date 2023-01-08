@@ -96,22 +96,79 @@ mod tests {
 
     #[test]
     fn response_write_to() {
-        let buf = Cursor::new(Vec::<u8>::new());
+        let mut buf = Cursor::new(Vec::<u8>::new());
         let mut h = Headers::new();
+
+        let payload_string = String::from("Hello there!");
+        let payload: Vec<u8> = payload_string.bytes().collect();
+        let payload_len = payload.len();
 
         h.add("server".to_string(), Some("rust-tests".to_string()));
 
-        let _resp = Response {
+        let mut resp = Response {
             version: HttpVersion::HTTP1_1,
             status: Status::Ok,
             headers: h,
-            payload: String::from("Hello there!").bytes().collect(),
+            payload,
         };
 
-        //assert_eq!(resp.headers.content_length().unwrap(), 12, "Content-Length is wrong");
+        let n= resp.write_to(&mut buf).unwrap();
+        assert_eq!(resp.headers.content_length().unwrap(), payload_len, "Content-Length is wrong");
+       
+        let server_header = format!("server: {}\r\n", resp.headers.server().unwrap());
+        let content_len_header =  format!("content-length: {}\r\n", resp.headers.content_length().unwrap());
+
+
+        
 
         let rs = String::from_utf8(buf.into_inner()).unwrap();
-        println!("{rs}");
-        // TODO: more tests on response format
+        assert_eq!(rs.len(), n);
+
+        let first_line_end = rs.find('\r').unwrap() + 2;
+        assert_eq!(first_line_end, 17);
+
+        let first_line = &rs[0..first_line_end];
+        println!("{:?}", first_line);
+        assert_eq!(first_line, "HTTP/1.1 200 OK\r\n");
+
+        
+        let rest = &rs[first_line_end..];
+        println!("{:?}", rest);
+        let line_end = rest.find("\r\n").unwrap() + 2;
+        let header_1 = &rest[0..line_end];
+        println!("1 {:?}", header_1);
+
+
+        let rest = &rest[line_end..];
+        let line_end = rest.find('\r').unwrap()+2;
+        let header_2 = &rest[0..line_end];
+        println!("2 {:?}", header_2);
+
+
+        if header_1.starts_with("server") {
+            assert_eq!(header_1, server_header);
+            assert_eq!(header_2, content_len_header);
+
+        } else if header_2.starts_with("server") {
+            assert_eq!(header_1, content_len_header);
+            assert_eq!(header_2, server_header);
+
+        } else {
+            panic!("no server header")
+        }
+
+
+
+        let rest = &rest[line_end..];
+        let line_end = rest.find('\r').unwrap()+2;
+        let new_line = &rest[0..line_end];
+        println!("3 {:?}", new_line);
+        assert_eq!(new_line, "\r\n");
+
+        let payload = &rest[line_end..];
+        println!("4 {:?}", payload);
+        assert_eq!(payload_string, payload);
+
+    
     }
 }
